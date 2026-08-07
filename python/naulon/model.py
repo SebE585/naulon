@@ -76,17 +76,51 @@ def _value(entry: Any) -> Any:
     return entry
 
 
-def _unsourced_constants(constants: dict) -> list[str]:
+PLACEHOLDER_STATUSES = {"to_source", "to_measure"}
+
+
+def framing_regime(constants: dict, device: dict) -> str:
+    """Which framing regime this device is in.
+
+    Record framing is not one number: a bit-packed radio protocol, a binary
+    framed one and a text one are an order of magnitude apart. Making the
+    regime an explicit parameter keeps that out of the hidden assumptions.
+    """
+    entry = constants["framing"]["record_framing_bytes"]
+    name = device.get("framing_regime") or entry["default_regime"]
+    if name not in entry["regimes"]:
+        raise ModelError(
+            f"unknown framing regime {name!r}; known: {sorted(entry['regimes'])}"
+        )
+    return name
+
+
+def _record_framing_bytes(constants: dict, device: dict) -> float:
+    entry = constants["framing"]["record_framing_bytes"]
+    return entry["regimes"][framing_regime(constants, device)]["value"]
+
+
+def _unsourced_constants(constants: dict, device: dict | None = None) -> list[str]:
     """Names of constants that are placeholders, not facts.
 
     A result that leans on one of these is not publishable as measured. The
     caller is expected to surface this list, not swallow it.
+
+    Only the framing regime actually in use is reported: flagging the ASCII
+    regime on a binary configuration would be noise, and noise is how warnings
+    stop being read.
     """
     flagged: list[str] = []
     for section in ("transport", "framing", "billing"):
         for name, entry in constants.get(section, {}).items():
-            if isinstance(entry, dict) and entry.get("status") in {"to_source", "to_measure"}:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("status") in PLACEHOLDER_STATUSES:
                 flagged.append(f"{section}.{name}")
+            if "regimes" in entry and device is not None:
+                regime = framing_regime(constants, device)
+                if entry["regimes"][regime].get("status") in PLACEHOLDER_STATUSES:
+                    flagged.append(f"{section}.{name}[{regime}]")
     return sorted(flagged)
 
 
@@ -162,7 +196,7 @@ def _payload_bytes_per_second(
             Contribution(key=spec["id"], family=spec["family"], clock=spec["clock"], bytes_per_month=bps)
         )
 
-    framing = _value(constants["framing"]["record_framing_bytes"]) * device["output_rate_hz"]
+    framing = _record_framing_bytes(constants, device) * device["output_rate_hz"]
     total += framing
     per_second.append(
         Contribution(key="record_framing", family="framing", clock="record", bytes_per_month=framing)
@@ -233,7 +267,7 @@ def _heartbeat_bytes(constants: dict, device: dict, seconds: float) -> tuple[flo
     if not period:
         return 0.0, 0.0
     beats = seconds / period
-    payload = _value(constants["framing"]["record_framing_bytes"])
+    payload = _record_framing_bytes(constants, device)
     per_beat = payload + _transport_bytes_per_send(constants, device, payload)
     return per_beat * beats, beats
 
@@ -298,7 +332,7 @@ def compute(config: dict, constants: dict) -> Result:
         bytes_driving=bytes_driving * vehicles,
         bytes_parked=bytes_parked * vehicles,
         contributions=contributions,
-        unsourced=_unsourced_constants(constants),
+        unsourced=_unsourced_constants(constants, device),
         cost=cost,
         currency=tariff.get("currency", "EUR") if cost is not None else None,
     )

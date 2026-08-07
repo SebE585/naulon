@@ -129,7 +129,47 @@ def test_fleet_scales_linearly(constants):
 def test_unmeasured_constants_are_reported(constants):
     """A placeholder must never pass silently for a measurement."""
     result = compute({"profile": "periodic", "duty": dict(DUTY)}, constants)
-    assert "framing.record_framing_bytes" in result.unsourced
+    assert "framing.batch_framing_bytes" in result.unsourced
+    assert "billing.session_floor_bytes" in result.unsourced
+
+
+def test_only_the_framing_regime_in_use_is_flagged(constants):
+    """The binary regime is sourced; the text one is not. A report must say so
+    for the regime it actually used, and stay quiet about the others — a
+    warning that fires every time stops being read."""
+    binary = compute(
+        {"profile": "periodic", "device": {"framing_regime": "binary_framed"},
+         "duty": dict(DUTY)},
+        constants,
+    )
+    ascii_text = compute(
+        {"profile": "periodic", "device": {"framing_regime": "ascii_delimited"},
+         "duty": dict(DUTY)},
+        constants,
+    )
+    assert not any(f.startswith("framing.record_framing_bytes") for f in binary.unsourced)
+    assert "framing.record_framing_bytes[ascii_delimited]" in ascii_text.unsourced
+
+
+def test_framing_regimes_are_an_order_of_magnitude_apart(constants):
+    """The finding that killed the single-constant model: a text protocol pays
+    several times a binary one for identical semantics."""
+    def envelope_for(regime):
+        return compute(
+            {"profile": "periodic", "device": {"framing_regime": regime}, "duty": dict(DUTY)},
+            constants,
+        ).mb_per_month
+
+    assert envelope_for("ascii_delimited") > envelope_for("binary_framed")
+    assert envelope_for("binary_framed") > envelope_for("bit_packed")
+
+
+def test_unknown_framing_regime_is_rejected(constants):
+    with pytest.raises(ModelError):
+        compute(
+            {"profile": "periodic", "device": {"framing_regime": "nope"}, "duty": dict(DUTY)},
+            constants,
+        )
 
 
 def test_output_faster_than_sampling_is_rejected(constants):

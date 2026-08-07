@@ -21,9 +21,10 @@ because nobody can check the arithmetic. Naulon makes the arithmetic checkable.
 
 Three results fall out of the model immediately:
 
-- **More positions cost far less than proportionally.** Four times the
-  positions is roughly 1.7 times the bytes, because per-transmission costs are
-  amortised and only the record count grows.
+- **More positions cost far less than proportionally.** One extra position
+  costs about 31 bytes in a binary protocol and nothing else — no session, no
+  handshake, no billing floor — because those are paid per transmission and the
+  transmission count does not move.
 - **Transmission frequency is nearly free on a persistent session.** Once a
   batch exceeds one MSS, batching stops saving header overhead. Send period
   only becomes expensive when the device reconnects each time, or when the
@@ -49,6 +50,10 @@ The first term is set by the **transmission period**: session setup, handshake,
 IP and TCP headers, acknowledgements, per-session billing floor. The second is
 set by the **acquisition rate**.
 
+Record framing is a **regime**, not a constant — binary framed (8 B),
+bit-packed (4 B), text-delimited (~60 B) — and it is the term that sets the
+marginal cost. It is an explicit parameter rather than a hidden assumption.
+
 They are separable. Raising the acquisition rate touches only the second term —
 and the marginal cost of one position is a *constant*: its field widths plus
 the record envelope, plus a sliver of segment overhead. It does not depend on
@@ -62,24 +67,24 @@ one every two minutes, only the acquisition rate moving:
 
 | duty profile | 120 s | 30 s | 10 s | sessions |
 |---|---|---|---|---|
-| heavy goods, 7 h/day | 1.60 MB | 2.61 MB | 5.31 MB | unchanged |
-| light commercial, 4 h/day | 1.40 MB | 1.97 MB | 3.52 MB | unchanged |
-| private car, 1.5 h/day | 1.26 MB | 1.56 MB | 2.35 MB | unchanged |
+| heavy goods, 7 h/day | 1.12 MB | 1.55 MB | 2.70 MB | unchanged |
+| light commercial, 4 h/day | 0.97 MB | 1.21 MB | 1.87 MB | unchanged |
+| private car, 1.5 h/day | 0.87 MB | 0.99 MB | 1.33 MB | unchanged |
 
-The marginal cost of one position lands at **53 to 93 bytes** across the
-plausible range of the record-envelope placeholder. Everything else in those
-rows is fixed cost that does not care how often you sample.
+The marginal cost of one position is **31 bytes** in the binary framing regime,
+27 in the bit-packed one, 83 in text. Everything else in those rows is fixed
+cost that does not care how often you sample.
 
 Two cautions the numbers make visible:
 
 - **Percentages are the wrong unit.** They depend entirely on the baseline,
   which is dominated by whatever the device does while parked. Going from 120 s
-  to 30 s reads as +63 % on a heavy goods vehicle and +23 % on a private car —
+  to 30 s reads as +38 % on a heavy goods vehicle and +15 % on a private car —
   same physics, three different headlines. Quote the marginal cost per
   position, or the absolute delta per vehicle.
 - **Check the composition before optimising.** In the heavy goods row, position
-  and quality fields together are 4 % of the volume and the parked-time
-  heartbeat is 55 %.
+  and quality fields together are 6 % of the volume and the parked-time
+  heartbeat is 53 %.
 
 The theorem collapses in exactly one arrangement: a device that opens a session
 for every single position. The transmission count then *is* the position count,
@@ -133,26 +138,40 @@ Every constant in `model/constants.yaml` carries a status:
 
 | status | meaning |
 |---|---|
+| `sourced` | taken from a published specification, with URL and consultation date |
 | `derived` | computable from first principles or a public standard — the `basis` field says which |
 | `to_source` | a placeholder awaiting a citation to a published specification |
 | `to_measure` | awaiting empirical measurement — the `method` field says how |
+
+`RATIONALE.md` documents every value: where it came from, what was cross-checked
+against what, and what is still owed.
 
 **A constant marked `to_source` or `to_measure` is not a fact.** Every report,
 CLI or library, lists the placeholders it leaned on. Do not publish a Naulon
 figure as measured until the constants underneath it are sourced.
 
-Ratios are far more robust than absolutes: across the whole plausible range of
-the record-envelope placeholder (30–70 bytes), the 120 s → 30 s ratio moves
-only between 1.61 and 1.79. Prefer comparisons to single numbers.
+This is not theoretical. Version 0.1.0 shipped a single unsourced 50-byte
+record envelope; sourcing it against published specifications showed binary
+protocols frame a record in 8 bytes, not 50 — five times off, and it had
+propagated into every figure here. Nothing had been published as measured,
+because every report flagged it. That is what the status field is for.
+
+Prefer ratios to absolutes. When that value moved from 50 to 8, absolute
+envelopes fell by about a third while every conclusion held: the session count
+still does not move with acquisition rate, and the marginal cost of a position
+is still a constant.
 
 ## Layout
 
 ```
 model/          the source of truth — no implementation may inline these values
-  constants.yaml    field widths, clocks, encodings, behavioural profiles
+  constants.yaml    field widths, clocks, encodings, framing regimes, profiles
   schema.json       input configuration contract
   vectors.json      cross-implementation parity fixtures
 python/         reference implementation, library and CLI
+scenarios/      reproducible worked examples
+scripts/        regen_vectors.py — rerun after any change to constants
+RATIONALE.md    provenance of every constant, and the open debts
 ```
 
 A JavaScript implementation for the browser calculator will live alongside.

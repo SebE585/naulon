@@ -14,11 +14,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 90.1968,
-        "mb_per_month_billed": 90.1968,
+        "mb_per_month": 61.621824,
+        "mb_per_month_billed": 61.621824,
         "sessions_per_month": 44,
-        "bytes_driving": 89348160.0,
-        "bytes_parked": 848640.0
+        "bytes_driving": 61047360.0,
+        "bytes_parked": 574464.0
       }
     },
     {
@@ -33,11 +33,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 2457.216,
-        "mb_per_month_billed": 2457.216,
+        "mb_per_month": 2737.152,
+        "mb_per_month_billed": 2737.152,
         "sessions_per_month": 259200.0,
-        "bytes_driving": 600652800.0,
-        "bytes_parked": 1856563200.0
+        "bytes_driving": 669081600.0,
+        "bytes_parked": 2068070400.0
       }
     },
     {
@@ -52,11 +52,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 12.69352,
-        "mb_per_month_billed": 12.69352,
+        "mb_per_month": 5.526928,
+        "mb_per_month_billed": 5.526928,
         "sessions_per_month": 44,
-        "bytes_driving": 12410640.0,
-        "bytes_parked": 282880.0
+        "bytes_driving": 5335440.0,
+        "bytes_parked": 191488.0
       }
     },
     {
@@ -74,8 +74,8 @@
           "gyro_xyz": false,
           "magneto_xyz": false,
           "satellites": true,
-          "hdop": true,
-          "fix_type": true
+          "hdop": false,
+          "fix_type": false
         },
         "duty": {
           "driving_hours_per_day": 8,
@@ -84,11 +84,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 1.68288,
-        "mb_per_month_billed": 1.68288,
+        "mb_per_month": 1.171104,
+        "mb_per_month_billed": 1.171104,
         "sessions_per_month": 44,
-        "bytes_driving": 834240.0,
-        "bytes_parked": 848640.0
+        "bytes_driving": 596640.0,
+        "bytes_parked": 574464.0
       }
     },
     {
@@ -106,8 +106,8 @@
           "gyro_xyz": false,
           "magneto_xyz": false,
           "satellites": true,
-          "hdop": true,
-          "fix_type": true
+          "hdop": false,
+          "fix_type": false
         },
         "duty": {
           "driving_hours_per_day": 8,
@@ -116,11 +116,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 2.88672,
-        "mb_per_month_billed": 2.88672,
+        "mb_per_month": 1.662144,
+        "mb_per_month_billed": 1.662144,
         "sessions_per_month": 44,
-        "bytes_driving": 2038080.0,
-        "bytes_parked": 848640.0
+        "bytes_driving": 1087680.0,
+        "bytes_parked": 574464.0
       }
     },
     {
@@ -140,11 +140,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 530.1264,
-        "mb_per_month_billed": 530.1264,
+        "mb_per_month": 248.533824,
+        "mb_per_month_billed": 248.533824,
         "sessions_per_month": 44,
-        "bytes_driving": 529277760.0,
-        "bytes_parked": 848640.0
+        "bytes_driving": 247959360.0,
+        "bytes_parked": 574464.0
       }
     },
     {
@@ -159,11 +159,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 4509.84,
-        "mb_per_month_billed": 4509.84,
+        "mb_per_month": 3081.0912,
+        "mb_per_month_billed": 3081.0912,
         "sessions_per_month": 2200,
-        "bytes_driving": 4467408000.0,
-        "bytes_parked": 42432000.0
+        "bytes_driving": 3052368000.0,
+        "bytes_parked": 28723200.0
       }
     },
     {
@@ -195,11 +195,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 2.9685,
-        "mb_per_month_billed": 2.9685,
+        "mb_per_month": 2.489196,
+        "mb_per_month_billed": 2.489196,
         "sessions_per_month": 11412.0,
-        "bytes_driving": 1270500.0,
-        "bytes_parked": 1698000.0
+        "bytes_driving": 1076460.0,
+        "bytes_parked": 1412736.0
       }
     },
     {
@@ -231,11 +231,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 6.75228,
-        "mb_per_month_billed": 6.75228,
+        "mb_per_month": 5.690856,
+        "mb_per_month_billed": 5.690856,
         "sessions_per_month": 25272.0,
-        "bytes_driving": 5054280.0,
-        "bytes_parked": 1698000.0
+        "bytes_driving": 4278120.0,
+        "bytes_parked": 1412736.0
       }
     },
     {
@@ -267,11 +267,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 1.59906,
-        "mb_per_month_billed": 1.59906,
+        "mb_per_month": 1.119756,
+        "mb_per_month_billed": 1.119756,
         "sessions_per_month": 44,
-        "bytes_driving": 716100.0,
-        "bytes_parked": 882960.0
+        "bytes_driving": 522060.0,
+        "bytes_parked": 597696.0
       }
     },
     {
@@ -303,11 +303,48 @@
         }
       },
       "expect": {
-        "mb_per_month": 2.61084,
-        "mb_per_month_billed": 2.61084,
+        "mb_per_month": 1.549416,
+        "mb_per_month_billed": 1.549416,
         "sessions_per_month": 44,
-        "bytes_driving": 1727880.0,
-        "bytes_parked": 882960.0
+        "bytes_driving": 951720.0,
+        "bytes_parked": 597696.0
+      }
+    },
+    {
+      "name": "ascii_regime_120s",
+      "description": "Same position feed in a text protocol. The framing regime, not the cadence, is the difference.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.008333333333333333,
+          "fix_rate_hz": 0.008333333333333333,
+          "send_period_s": 120,
+          "session_policy": "persistent",
+          "dedup_repeated_fix": true,
+          "emit_when_parked": false,
+          "tls": false,
+          "framing_regime": "ascii_delimited"
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": false,
+          "fix_type": false
+        },
+        "duty": {
+          "driving_hours_per_day": 7,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 1.71318,
+        "mb_per_month_billed": 1.71318,
+        "sessions_per_month": 44,
+        "bytes_driving": 762300.0,
+        "bytes_parked": 950880.0
       }
     }
   ]

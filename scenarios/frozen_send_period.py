@@ -18,7 +18,6 @@ Run:
 
 from __future__ import annotations
 
-import copy
 import sys
 from pathlib import Path
 
@@ -45,7 +44,7 @@ FIELDS = {
 
 SEND_PERIOD_S = 120
 ACQUISITION_PERIODS_S = (120, 60, 30, 20, 10, 5, 1)
-ENVELOPE_RANGE_BYTES = (30, 40, 50, 60, 70)
+
 REFERENCE_PROFILE = "heavy goods"
 
 
@@ -54,7 +53,7 @@ def positions_per_month(duty: dict, acquisition_period_s: float) -> float:
     return driving_s / acquisition_period_s
 
 
-def run(constants: dict, duty: dict, acquisition_period_s: float):
+def run(constants: dict, duty: dict, acquisition_period_s: float, regime: str | None = None):
     """One configuration. The send period never moves."""
     device = {
         "output_rate_hz": 1 / acquisition_period_s,
@@ -65,6 +64,10 @@ def run(constants: dict, duty: dict, acquisition_period_s: float):
         "emit_when_parked": False,
         "tls": False,
     }
+    if regime is not None:
+        # Must go on the device: the profile preset already names a regime and
+        # would otherwise win over any change to the default.
+        device["framing_regime"] = regime
     return compute(
         {"profile": "periodic", "device": device, "fields": FIELDS, "duty": dict(duty)},
         constants,
@@ -110,23 +113,32 @@ def table_percentages(constants: dict) -> None:
 
 
 def table_marginal_cost(base_constants: dict) -> None:
-    """The marginal cost of one position, and how much the placeholder moves it."""
+    """The marginal cost of one position, across framing regimes.
+
+    Record framing is the term that moves this number, and it is a regime
+    rather than a constant: an earlier single-value placeholder of 50 bytes
+    turned out to be about five times too high for binary protocols once it was
+    sourced against published specifications.
+    """
     duty = DUTY_PROFILES[REFERENCE_PROFILE]
+    regimes = base_constants["framing"]["record_framing_bytes"]["regimes"]
     print()
     print(f"Marginal cost of one additional position ({REFERENCE_PROFILE})")
-    print("(sensitivity to record_framing_bytes, which is still a placeholder)")
     print()
-    print(f"{'envelope':>10} {'marginal':>12} {'120 -> 30 s':>18}")
+    print(f"{'framing regime':<18}{'envelope':>10}{'status':>12}{'marginal':>11}{'120 -> 30 s':>18}")
     n_base = positions_per_month(duty, 120)
     n_dense = positions_per_month(duty, 30)
-    for envelope in ENVELOPE_RANGE_BYTES:
-        constants = copy.deepcopy(base_constants)
-        constants["framing"]["record_framing_bytes"]["value"] = envelope
-        delta_mb = run(constants, duty, 30).mb_per_month - run(constants, duty, 120).mb_per_month
+    for name, regime in regimes.items():
+        delta_mb = (run(base_constants, duty, 30, name).mb_per_month
+                    - run(base_constants, duty, 120, name).mb_per_month)
         marginal = delta_mb * 1e6 / (n_dense - n_base)
-        print(f"{envelope:>8} B {marginal:>10.1f} B {f'+{delta_mb:.2f} MB/veh/mo':>18}")
+        print(
+            f"{name:<18}{regime['value']:>8} B{regime['status']:>12}"
+            f"{marginal:>9.1f} B {f'+{delta_mb:.2f} MB/veh/mo':>17}"
+        )
     print()
-    print("A constant, and a small one. It does not depend on how often you transmit.")
+    print("A constant within a regime, and a small one. It does not depend on")
+    print("how often you transmit — only on how the protocol wraps a record.")
 
 
 def table_composition(constants: dict) -> None:

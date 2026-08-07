@@ -51,19 +51,77 @@ transport:
     basis: "TLS 1.3 record: 5 B header + 16 B AEAD tag + 1 B content type"
 
 framing:
+  # Per-record envelope: everything that is not a semantic field. Sync words,
+  # length prefixes, type tags, checksums, terminators.
+  #
+  # This is NOT one number. It is a regime, and the regimes are an order of
+  # magnitude apart. An earlier version of this file carried a single 50-byte
+  # placeholder; sourcing it against published specifications showed that value
+  # to be roughly five times too high for binary protocols. See RATIONALE.md.
+  #
+  # Convention for the framing/field boundary: a sequence counter is a modelled
+  # field (`sequence_counter`), not framing. A message type tag is framing.
   record_framing_bytes:
-    value: 50
-    status: to_source
-    note: >
-      Per-record envelope excluding the semantic fields listed below: length
-      prefixes, element counts, type tags, checksums. Observed range across
-      binary telematics protocols is roughly 40-60 B. MUST be replaced by a
-      sourced range across at least three publicly documented specifications
-      before any published result depends on it.
+    default_regime: binary_framed
+    regimes:
+      binary_framed:
+        value: 8
+        status: sourced
+        note: >
+          Two independently specified binary protocols converge here. UBX
+          (u-blox): 2 sync + 1 class + 1 id + 2 length + 2 checksum = 8. GT06
+          (Concox): 2 start + 1 length + 1 protocol number + 2 CRC + 2 stop = 8,
+          with its 2-byte serial counted as a field under our convention.
+        sources:
+          - name: "UBX Protocol frame structure"
+            url: "https://docs.sparkfun.com/SparkFun_GNSS_Flex_System/SparkPNT_GNSS_Flex_Module_DAN-F10N/ubx_protocol/"
+            consulted_on: 2026-08-07
+            reservation: >
+              Secondary source. The primary u-blox Interface Description
+              (UBX-13003221) states the same structure but has not been read
+              directly; promote when it has.
+          - name: "GT06 protocol packet format"
+            url: "https://traxelio.com/trackers/protocol/gt06"
+            consulted_on: 2026-08-07
+            reservation: >
+              The page states 12 bytes of overhead while its own byte table
+              sums to 10; the value here is recomputed from the table, with the
+              2-byte serial reassigned to `sequence_counter`.
+      bit_packed:
+        value: 4
+        status: sourced
+        note: >
+          Bit-packed radio protocols carry almost no in-message framing because
+          the framing lives in the physical layer. AIS message type 1 is 168
+          bits total, of which the non-navigation part (message type 6, repeat
+          indicator 2, spare 3, RAIM 1, radio status 19) is 31 bits.
+        sources:
+          - name: "AIVDM/AIVDO protocol decoding, AIS message type 1"
+            url: "https://gpsd.gitlab.io/gpsd/AIVDM.html"
+            consulted_on: 2026-08-07
+      ascii_delimited:
+        value: 60
+        status: to_source
+        note: >
+          Text protocols pay several times binary for the same semantics:
+          separators, decimal representation, and a long fixed preamble. A
+          Queclink @Track position record runs to roughly 180 characters, a
+          large share of it prefix, message type, device identity, model name,
+          counters, checksum and terminator. This value is an estimate and has
+          NOT been derived field by field.
+        sources:
+          - name: "Queclink @Track Air Interface Protocol"
+            url: "https://www.traccar.org/protocol/5004-gl200/GT300%20@Track%20Air%20Interface%20Protocol%20V4.02.pdf"
+            consulted_on: 2026-08-07
+            reservation: "Located but not yet read field by field."
   batch_framing_bytes:
     value: 16
     status: to_source
-    note: "Per-transmission wrapper around a batch of records: preamble, count, CRC."
+    note: >
+      Per-transmission wrapper around a batch of records: preamble, record
+      count, CRC. No publicly specified batching telematics protocol has been
+      sourced for this yet, and it is the case that matters most for the
+      separability argument. Known open debt.
 
 billing:
   session_floor_bytes:
@@ -299,6 +357,7 @@ profiles:
       compression, repeats the last fix at the output rate, transmits while
       parked, reconnects for every transmission.
     device:
+      framing_regime: ascii_delimited
       sample_rate_hz: 10
       fix_rate_hz: 1
       output_rate_hz: 10
@@ -323,6 +382,7 @@ profiles:
       compression, stops emitting the inertial stream when parked but keeps a
       heartbeat.
     device:
+      framing_regime: binary_framed
       sample_rate_hz: 10
       fix_rate_hz: 1
       output_rate_hz: 1
@@ -345,6 +405,7 @@ profiles:
       batching, delta compression, deduplicated fixes, silent when parked
       apart from a slow heartbeat, long-lived session.
     device:
+      framing_regime: binary_framed
       sample_rate_hz: 10
       fix_rate_hz: 1
       output_rate_hz: 1

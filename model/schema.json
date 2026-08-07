@@ -5,11 +5,18 @@
   "description": "Input configuration for the Naulon data-envelope model. Every implementation validates against this file.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["profile", "duty"],
+  "required": [
+    "profile",
+    "duty"
+  ],
   "properties": {
     "profile": {
       "description": "Behavioural preset from constants.yaml. Overridden by `device` and `fields`.",
-      "enum": ["naive", "periodic", "event_driven"]
+      "enum": [
+        "naive",
+        "periodic",
+        "event_driven"
+      ]
     },
     "device": {
       "description": "Overrides on the profile's device parameters.",
@@ -18,19 +25,34 @@
       "properties": {
         "sample_rate_hz": {
           "description": "Inertial sampling rate.",
-          "type": "number", "exclusiveMinimum": 0, "maximum": 1000
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
         },
         "fix_rate_hz": {
           "description": "GNSS acquisition rate. Distinct from the output rate: a device may emit faster than it acquires, repeating the last fix.",
-          "type": "number", "exclusiveMinimum": 0, "maximum": 100
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
         },
         "output_rate_hz": {
           "description": "Rate at which records are produced into the send buffer.",
-          "type": "number", "exclusiveMinimum": 0, "maximum": 1000
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
         },
         "send_period_s": {
           "description": "How often the buffer is flushed to the network. The single most expensive parameter in the model.",
-          "type": "number", "exclusiveMinimum": 0
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "framing_regime": {
+          "description": "Per-record framing regime: binary_framed, bit_packed or ascii_delimited. They are an order of magnitude apart, so this is an explicit parameter rather than a hidden assumption.",
+          "enum": [
+            "binary_framed",
+            "bit_packed",
+            "ascii_delimited"
+          ]
         },
         "dedup_repeated_fix": {
           "description": "If false, position fields are carried at the output rate even when the fix has not changed. This is the redundancy factor.",
@@ -42,35 +64,65 @@
         },
         "compression_ratio": {
           "description": "Payload compression factor (delta, varint). 1.0 means none.",
-          "type": "number", "minimum": 1.0, "maximum": 20.0
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 20.0
         },
         "session_policy": {
           "description": "reconnect_per_send pays a handshake and a billing floor for every transmission.",
-          "enum": ["reconnect_per_send", "persistent"]
+          "enum": [
+            "reconnect_per_send",
+            "persistent"
+          ]
         },
-        "tls": { "type": "boolean" },
+        "tls": {
+          "type": "boolean"
+        },
         "emit_when_parked": {
           "description": "Whether the full stream continues while the vehicle is stationary with the engine off.",
           "type": "boolean"
         },
-        "heartbeat_period_s": { "type": "number", "exclusiveMinimum": 0 },
-        "state_events_per_hour": { "type": "number", "minimum": 0 }
+        "heartbeat_period_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "state_events_per_hour": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     },
     "fields": {
       "description": "Per-field enable/disable, overriding the defaults in constants.yaml. Keys are field ids.",
       "type": "object",
-      "additionalProperties": { "type": "boolean" }
+      "additionalProperties": {
+        "type": "boolean"
+      }
     },
     "duty": {
       "description": "How much the vehicle actually runs. Parked hours are not free.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["driving_hours_per_day", "driving_days_per_month"],
+      "required": [
+        "driving_hours_per_day",
+        "driving_days_per_month"
+      ],
       "properties": {
-        "driving_hours_per_day": { "type": "number", "minimum": 0, "maximum": 24 },
-        "driving_days_per_month": { "type": "number", "minimum": 0, "maximum": 31 },
-        "vehicles": { "type": "integer", "minimum": 1, "default": 1 }
+        "driving_hours_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "driving_days_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "vehicles": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
       }
     },
     "tariff": {
@@ -78,13 +130,32 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "price_per_mb": { "type": ["number", "null"], "minimum": 0 },
-        "price_per_session": { "type": ["number", "null"], "minimum": 0 },
+        "price_per_mb": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "price_per_session": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
         "billing_granularity_bytes": {
           "description": "Per-session rounding unit. Rounding penalises frequent small transmissions.",
-          "type": ["integer", "null"], "minimum": 1
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         },
-        "currency": { "type": "string", "default": "EUR" }
+        "currency": {
+          "type": "string",
+          "default": "EUR"
+        }
       }
     }
   }
