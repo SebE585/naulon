@@ -165,6 +165,150 @@
         "bytes_driving": 4467408000.0,
         "bytes_parked": 42432000.0
       }
+    },
+    {
+      "name": "unitary_emission_120s",
+      "description": "One frame per position, a session per transmission. Cost follows the event count.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.008333333333333333,
+          "fix_rate_hz": 0.008333333333333333,
+          "send_period_s": 120,
+          "session_policy": "reconnect_per_send",
+          "dedup_repeated_fix": true,
+          "emit_when_parked": false,
+          "tls": false
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": false,
+          "fix_type": false
+        },
+        "duty": {
+          "driving_hours_per_day": 7,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 2.9685,
+        "mb_per_month_billed": 2.9685,
+        "sessions_per_month": 11412.0,
+        "bytes_driving": 1270500.0,
+        "bytes_parked": 1698000.0
+      }
+    },
+    {
+      "name": "unitary_emission_30s",
+      "description": "Same device, four times the positions. Four times the sessions.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.03333333333333333,
+          "fix_rate_hz": 0.03333333333333333,
+          "send_period_s": 30,
+          "session_policy": "reconnect_per_send",
+          "dedup_repeated_fix": true,
+          "emit_when_parked": false,
+          "tls": false
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": false,
+          "fix_type": false
+        },
+        "duty": {
+          "driving_hours_per_day": 7,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 6.75228,
+        "mb_per_month_billed": 6.75228,
+        "sessions_per_month": 25272.0,
+        "bytes_driving": 5054280.0,
+        "bytes_parked": 1698000.0
+      }
+    },
+    {
+      "name": "batched_emission_120s",
+      "description": "Positions grouped into a persistent session. Baseline.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.008333333333333333,
+          "fix_rate_hz": 0.008333333333333333,
+          "send_period_s": 120,
+          "session_policy": "persistent",
+          "dedup_repeated_fix": true,
+          "emit_when_parked": false,
+          "tls": false
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": false,
+          "fix_type": false
+        },
+        "duty": {
+          "driving_hours_per_day": 7,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 1.59906,
+        "mb_per_month_billed": 1.59906,
+        "sessions_per_month": 44,
+        "bytes_driving": 716100.0,
+        "bytes_parked": 882960.0
+      }
+    },
+    {
+      "name": "batched_emission_30s",
+      "description": "Four times the positions, same session count. Only payload grows.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.03333333333333333,
+          "fix_rate_hz": 0.03333333333333333,
+          "send_period_s": 120,
+          "session_policy": "persistent",
+          "dedup_repeated_fix": true,
+          "emit_when_parked": false,
+          "tls": false
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": false,
+          "fix_type": false
+        },
+        "duty": {
+          "driving_hours_per_day": 7,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 2.61084,
+        "mb_per_month_billed": 2.61084,
+        "sessions_per_month": 44,
+        "bytes_driving": 1727880.0,
+        "bytes_parked": 882960.0
+      }
     }
   ]
 }

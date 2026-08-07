@@ -36,6 +36,60 @@ Between the naive and the event-driven profile, with identical sensors and an
 identical duty cycle, the model spans more than two orders of magnitude. The
 architecture decides the bill, not the sensors.
 
+## The separability theorem
+
+The monthly volume splits into two independent terms:
+
+```
+volume =  per_transmission_cost x number_of_transmissions
+        + marginal_cost_per_position x number_of_positions
+```
+
+The first term is set by the **transmission period**: session setup, handshake,
+IP and TCP headers, acknowledgements, per-session billing floor. The second is
+set by the **acquisition rate**.
+
+They are separable. Raising the acquisition rate touches only the second term —
+and the marginal cost of one position is a *constant*: its field widths plus
+the record envelope, plus a sliver of segment overhead. It does not depend on
+how often you transmit.
+
+This is algebra, not measurement, which is what makes it hard to argue with.
+
+Worked across three duty profiles in
+`scenarios/frozen_send_period.py` — position-only feed, transmissions locked at
+one every two minutes, only the acquisition rate moving:
+
+| duty profile | 120 s | 30 s | 10 s | sessions |
+|---|---|---|---|---|
+| heavy goods, 7 h/day | 1.60 MB | 2.61 MB | 5.31 MB | unchanged |
+| light commercial, 4 h/day | 1.40 MB | 1.97 MB | 3.52 MB | unchanged |
+| private car, 1.5 h/day | 1.26 MB | 1.56 MB | 2.35 MB | unchanged |
+
+The marginal cost of one position lands at **53 to 93 bytes** across the
+plausible range of the record-envelope placeholder. Everything else in those
+rows is fixed cost that does not care how often you sample.
+
+Two cautions the numbers make visible:
+
+- **Percentages are the wrong unit.** They depend entirely on the baseline,
+  which is dominated by whatever the device does while parked. Going from 120 s
+  to 30 s reads as +63 % on a heavy goods vehicle and +23 % on a private car —
+  same physics, three different headlines. Quote the marginal cost per
+  position, or the absolute delta per vehicle.
+- **Check the composition before optimising.** In the heavy goods row, position
+  and quality fields together are 4 % of the volume and the parked-time
+  heartbeat is 55 %.
+
+The theorem collapses in exactly one arrangement: a device that opens a session
+for every single position. The transmission count then *is* the position count,
+the two terms merge, and acquisition rate really does drive cost. The vectors
+`unitary_emission_*` and `batched_emission_*` price both arrangements side by
+side — same vehicle, same feed, a factor of two between them. Which arrangement
+a given deployment is in is a configuration property, and the model cannot
+guess it: it has to be read off the operator's session counts and mean message
+size.
+
 ## Install
 
 ```bash
