@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "Naulon: field-level model of the cellular data envelope of a vehicle telematics fleet"
+message: "If you use this software or its model data, please cite it."
+type: software
+authors:
+  - family-names: Edet
+    given-names: Sebastien
+repository-code: "https://github.com/SebE585/naulon"
+abstract: >-
+  Naulon models the monthly cellular data envelope of a vehicle telematics
+  fleet field by field, billing each field at the rate of the clock it
+  actually follows, then adding record framing, transport overhead and
+  per-session billing rounding. It separates acquisition rate, output rate and
+  transmission rate, which vendor pricing tiers routinely conflate. Outputs are
+  in megabytes and sessions; tariffs are supplied by the user, never shipped.
+keywords:
+  - telematics
+  - fleet management
+  - GNSS
+  - cellular data
+  - M2M
+  - data budget
+license: Apache-2.0
+version: 0.1.0

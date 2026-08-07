@@ -1,0 +1,170 @@
+{
+  "note": "Cross-implementation parity fixtures. Every implementation must reproduce these outputs exactly. They pin behaviour; they do not prove correctness.",
+  "constants_version": "0.1.0",
+  "vectors": [
+    {
+      "name": "periodic_defaults",
+      "description": "Profile defaults, no overrides.",
+      "config": {
+        "profile": "periodic",
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 90.1968,
+        "mb_per_month_billed": 90.1968,
+        "sessions_per_month": 44,
+        "bytes_driving": 89348160.0,
+        "bytes_parked": 848640.0
+      }
+    },
+    {
+      "name": "naive_defaults",
+      "description": "The pathological device: repeats its fix, never stops, reconnects.",
+      "config": {
+        "profile": "naive",
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 2457.216,
+        "mb_per_month_billed": 2457.216,
+        "sessions_per_month": 259200.0,
+        "bytes_driving": 600652800.0,
+        "bytes_parked": 1856563200.0
+      }
+    },
+    {
+      "name": "event_driven_defaults",
+      "description": "Event-driven baseline.",
+      "config": {
+        "profile": "event_driven",
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 12.69352,
+        "mb_per_month_billed": 12.69352,
+        "sessions_per_month": 44,
+        "bytes_driving": 12410640.0,
+        "bytes_parked": 282880.0
+      }
+    },
+    {
+      "name": "position_only_120s",
+      "description": "Position-only feed, one fix every 120 s.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.008333333333333333,
+          "fix_rate_hz": 0.008333333333333333,
+          "send_period_s": 120
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": true,
+          "fix_type": true
+        },
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 1.68288,
+        "mb_per_month_billed": 1.68288,
+        "sessions_per_month": 44,
+        "bytes_driving": 834240.0,
+        "bytes_parked": 848640.0
+      }
+    },
+    {
+      "name": "position_only_30s",
+      "description": "Same feed at 30 s. Four times the positions.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 0.03333333333333333,
+          "fix_rate_hz": 0.03333333333333333,
+          "send_period_s": 120
+        },
+        "fields": {
+          "accel_xyz": false,
+          "gyro_xyz": false,
+          "magneto_xyz": false,
+          "satellites": true,
+          "hdop": true,
+          "fix_type": true
+        },
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 2.88672,
+        "mb_per_month_billed": 2.88672,
+        "sessions_per_month": 44,
+        "bytes_driving": 2038080.0,
+        "bytes_parked": 848640.0
+      }
+    },
+    {
+      "name": "repeated_fix_10hz",
+      "description": "10 Hz output on a 1 Hz fix, no deduplication.",
+      "config": {
+        "profile": "periodic",
+        "device": {
+          "output_rate_hz": 10,
+          "fix_rate_hz": 1,
+          "dedup_repeated_fix": false
+        },
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 1
+        }
+      },
+      "expect": {
+        "mb_per_month": 530.1264,
+        "mb_per_month_billed": 530.1264,
+        "sessions_per_month": 44,
+        "bytes_driving": 529277760.0,
+        "bytes_parked": 848640.0
+      }
+    },
+    {
+      "name": "fleet_of_50",
+      "description": "Linearity check.",
+      "config": {
+        "profile": "periodic",
+        "duty": {
+          "driving_hours_per_day": 8,
+          "driving_days_per_month": 22,
+          "vehicles": 50
+        }
+      },
+      "expect": {
+        "mb_per_month": 4509.84,
+        "mb_per_month_billed": 4509.84,
+        "sessions_per_month": 2200,
+        "bytes_driving": 4467408000.0,
+        "bytes_parked": 42432000.0
+      }
+    }
+  ]
+}

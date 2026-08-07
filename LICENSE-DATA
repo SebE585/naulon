@@ -1,0 +1,19 @@
+Model data licence
+==================
+
+The contents of `model/` — constants.yaml, schema.json, vectors.json — are
+licensed under the Creative Commons Attribution 4.0 International licence
+(CC-BY-4.0).
+
+    https://creativecommons.org/licenses/by/4.0/
+
+You are free to share and adapt this material for any purpose, including
+commercially, provided you give appropriate credit and indicate whether
+changes were made.
+
+Attribution:
+
+    Naulon model data, Sebastien Edet, https://github.com/SebE585/naulon
+
+The source code of this repository is licensed separately, under Apache-2.0.
+See LICENSE.

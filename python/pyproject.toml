@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "naulon"
+version = "0.1.0"
+description = "Field-level model of the monthly cellular data envelope of a vehicle telematics fleet."
+readme = "../README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Sebastien Edet" }]
+keywords = ["telematics", "fleet", "gnss", "iot", "m2m", "cellular-data", "data-budget"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = ["PyYAML>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/SebE585/naulon"
+Source = "https://github.com/SebE585/naulon"
+
+[project.scripts]
+naulon = "naulon.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["naulon*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
