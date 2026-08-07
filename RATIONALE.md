@@ -89,6 +89,64 @@ counters, checksum and terminator.
 
 ---
 
+## Batch framing
+
+**16 bytes, derived** from SenML (RFC 8428) encoded in CBOR (RFC 8949).
+
+A SenML Pack is an array of Records whose base fields — base name, base time,
+base value, base unit, base sum, base version — are carried **once for the whole
+pack**, after which each record carries only its offset from them. The
+specification is explicit: base time and time are added together to get the time
+of measurement; base value and value are added together to get the value.
+
+That is batching plus delta encoding, specified in a Standards Track RFC. The
+`event_driven` profile is not an architecture we invented; it is a documented
+one.
+
+Byte count for one pack wrapper: CBOR definite-length array header 1 byte
+(2 beyond 23 records), plus the base fields in the first record's map — map
+header 1, `bver` label and value 2 (often omitted, default 10), `bn` label plus
+text header plus a short base name about 10, `bt` label plus a 32-bit epoch 6.
+Between 10 and 20 bytes; 16 is the midpoint.
+
+- [RFC 8428, Sensor Measurement Lists (SenML)](https://www.rfc-editor.org/rfc/rfc8428.html) — consulted 2026-08-07
+
+*Caveat:* this is a derivation from two specifications, not a measurement of a
+telematics product. A protocol using a fixed binary preamble and a CRC would
+land lower.
+
+### A compactness data point, and what it does not say
+
+RFC 8428's own worked example encodes to 254 bytes in CBOR against 573 bytes in
+JSON — 44 %, a factor of about 2.3.
+
+That measures **binary against text**, not the gain from delta encoding. It is
+evidence for the framing regimes in this file. It is *not* a source for
+`compression_ratio`, and it must not be cited as one.
+
+### Unmodelled second-order effect: delta encoding rewards density
+
+Google's Encoded Polyline Algorithm — delta, then zigzag, then 5-bit varint
+chunks, at 1e-5 degree scaling — notes that compression is most effective when
+consecutive coordinates are close together.
+
+The consequence runs in an interesting direction for this model. Under delta
+encoding, **raising the acquisition rate shrinks the deltas, so each additional
+position costs fewer bytes than the last**. Derived from the published
+algorithm at 90 km/h: roughly 3 000 m between fixes at 120 s needs three chunks
+per coordinate, while 250 m at 10 s needs two.
+
+**Naulon does not model this.** The marginal cost of a position is treated as a
+constant, which is the conservative choice: a real delta-encoded deployment will
+do slightly better than Naulon predicts when densifying, never worse. Modelling
+it would require a vehicle-speed parameter and would turn a flat statement —
+*the marginal cost is constant* — into a conditional one, at the cost of the
+argument's simplicity.
+
+- [Encoded Polyline Algorithm Format](https://developers.google.com/maps/documentation/utilities/polylinealgorithm) — consulted 2026-08-07
+
+---
+
 ## Transport
 
 `ip_tcp_header_bytes` (40), `ack_bytes` (40) and `tcp_handshake_bytes` (120) are
@@ -106,10 +164,18 @@ direction is contractual. It is exposed as a user toggle because it should be.
 
 ## Open debts
 
-**`batch_framing_bytes` has no source.** No publicly specified batching
-telematics protocol has been located and read for this value. This is the case
-that matters most for the separability argument, because batching is precisely
-what decouples transmission count from position count. Known and unresolved.
+**`compression_ratio` is invented.** The `event_driven` profile asserts 4.0
+with nothing behind it. SenML sources the *structure* of delta encoding but not
+the ratio it achieves, and the 2.3x CBOR-versus-JSON figure measures something
+else entirely. Deriving a defensible ratio means working out varint widths
+against realistic inter-fix distances — doable, and the polyline note above is
+the starting point.
+
+**The ASTERIX specification was not read.** EUROCONTROL's surveillance data
+exchange format would give a second, independent data point on block-level
+framing — a data block prefixes its records with a category and a length
+indicator. Both candidate PDFs failed to parse automatically. Worth a manual
+read to cross-check the SenML derivation.
 
 **TLS handshake sizes are unmeasured.** A device that reconnects over TLS for
 every transmission cannot currently be priced: the model raises rather than

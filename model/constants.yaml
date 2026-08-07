@@ -116,12 +116,29 @@ framing:
             reservation: "Located but not yet read field by field."
   batch_framing_bytes:
     value: 16
-    status: to_source
+    status: derived
+    basis: >
+      Derived from SenML (RFC 8428) encoded in CBOR (RFC 8949). A SenML Pack is
+      an array of Records in which the base fields are carried ONCE for the
+      whole pack and each record then carries only its offset from them — the
+      specification states that base time and time are added together, and base
+      value and value are added together. That is batching plus delta encoding,
+      in a Standards Track RFC.
+
+      Byte count for one pack wrapper: CBOR definite-length array header 1 B
+      (2 B beyond 23 records), plus the base fields in the first record's map —
+      map header 1 B, bver label+value 2 B (often omitted, default 10), bn
+      label + text header + a short base name ~10 B, bt label + 32-bit epoch
+      6 B. That lands between 10 and 20 bytes; 16 is the midpoint.
+    sources:
+      - name: "RFC 8428, Sensor Measurement Lists (SenML), base fields and Packs"
+        url: "https://www.rfc-editor.org/rfc/rfc8428.html"
+        consulted_on: 2026-08-07
     note: >
-      Per-transmission wrapper around a batch of records: preamble, record
-      count, CRC. No publicly specified batching telematics protocol has been
-      sourced for this yet, and it is the case that matters most for the
-      separability argument. Known open debt.
+      This is a derivation from two specifications, not a measurement of any
+      telematics product. It is the right order of magnitude for any protocol
+      that amortises a header across a batch; a product using a fixed binary
+      preamble plus a CRC would land lower.
 
 billing:
   session_floor_bytes:

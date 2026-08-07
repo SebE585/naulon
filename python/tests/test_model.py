@@ -129,8 +129,16 @@ def test_fleet_scales_linearly(constants):
 def test_unmeasured_constants_are_reported(constants):
     """A placeholder must never pass silently for a measurement."""
     result = compute({"profile": "periodic", "duty": dict(DUTY)}, constants)
-    assert "framing.batch_framing_bytes" in result.unsourced
     assert "billing.session_floor_bytes" in result.unsourced
+    assert "transport.count_downlink" in result.unsourced
+
+
+def test_sourced_and_derived_constants_are_not_flagged(constants):
+    """The warning list must shrink as constants get provenance, or it becomes
+    wallpaper. Record framing and batch framing both have sources now."""
+    result = compute({"profile": "periodic", "duty": dict(DUTY)}, constants)
+    assert "framing.batch_framing_bytes" not in result.unsourced
+    assert not any(f.startswith("framing.record_framing_bytes") for f in result.unsourced)
 
 
 def test_only_the_framing_regime_in_use_is_flagged(constants):
