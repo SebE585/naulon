@@ -147,6 +147,62 @@ argument's simplicity.
 
 ---
 
+## Compression
+
+**1.4, derived.** Reproduce with `python scripts/derive_compression.py`.
+
+`compression_ratio` was the last invented number in the model: the
+`event_driven` profile asserted 4.0 with nothing behind it. Deriving it gives
+**1.44** — the invention was nearly three times too optimistic.
+
+### Method
+
+Take a position record at the field widths declared in `constants.yaml`, then
+re-encode it as zigzag + LEB128 varint deltas from its predecessor. The width of
+each delta follows from how much the quantity can change between two fixes,
+which follows from vehicle speed and acquisition period. Zigzag and LEB128 are
+defined encodings and the distance-per-degree figure is geometry, so every step
+is checkable.
+
+At 1e-7 degree resolution, 30 s, 130 km/h:
+
+| field | raw | delta |
+|---|---|---|
+| timestamp | 8 B | 3 B |
+| latitude | 4 B | 3 B |
+| longitude | 4 B | 3 B |
+| altitude | 2 B | 1 B |
+| speed | 2 B | 2 B |
+| heading | 2 B | **3 B** |
+| satellites | 1 B | 1 B |
+| **total** | **23 B** | **16 B** — x1.44 |
+
+The ratio holds at x1.44 for every cadence from 120 s down to 10 s and every
+speed up to 130 km/h, and improves to x1.77 at 1 s. The value adopted is 1.4:
+the worst case across that grid, rounded down.
+
+### Two things the derivation exposes
+
+**Delta encoding makes some fields worse.** Heading costs 3 bytes as a delta
+against 2 bytes raw, because a 90 degree turn at 0.01 degree resolution is 9000
+units and zigzagging doubles it. A competent encoder keeps such fields raw and
+would beat 1.44. We do not model that.
+
+**The ratio improves with density**, for the reason in the polyline note above:
+denser sampling means smaller deltas.
+
+Both errors run the same way — the model understates what a good delta encoder
+achieves, and understates it more the denser you sample. Conservative in the
+direction that matters.
+
+### Where it is applied
+
+To semantic fields only. Sync words, length prefixes and checksums do not
+compress, and an earlier version of the model wrongly divided the whole record —
+framing included — by the ratio. Fixed alongside this derivation.
+
+---
+
 ## Transport
 
 `ip_tcp_header_bytes` (40), `ack_bytes` (40) and `tcp_handshake_bytes` (120) are
@@ -163,13 +219,6 @@ direction is contractual. It is exposed as a user toggle because it should be.
 ---
 
 ## Open debts
-
-**`compression_ratio` is invented.** The `event_driven` profile asserts 4.0
-with nothing behind it. SenML sources the *structure* of delta encoding but not
-the ratio it achieves, and the 2.3x CBOR-versus-JSON figure measures something
-else entirely. Deriving a defensible ratio means working out varint widths
-against realistic inter-fix distances — doable, and the polyline note above is
-the starting point.
 
 **The ASTERIX specification was not read.** EUROCONTROL's surveillance data
 exchange format would give a second, independent data point on block-level

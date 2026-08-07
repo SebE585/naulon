@@ -140,6 +140,33 @@ framing:
       that amortises a header across a batch; a product using a fixed binary
       preamble plus a CRC would land lower.
 
+compression:
+  # `compression_ratio` on a profile is how much delta encoding shrinks the
+  # SEMANTIC FIELDS of a record. It is not applied to framing: sync words,
+  # length prefixes and checksums do not compress.
+  #
+  # An earlier version asserted 4.0 on the event_driven profile with nothing
+  # behind it. Deriving it gives 1.44 — the invented value was nearly three
+  # times too optimistic. See scripts/derive_compression.py and RATIONALE.md.
+  delta_varint_ratio:
+    value: 1.4
+    status: derived
+    basis: >
+      A position record of 23 B (timestamp 8, lat 4, lon 4, altitude 2, speed 2,
+      heading 2, satellites 1) re-encoded as zigzag + LEB128 varint deltas from
+      the previous record comes to 16 B at 1e-7 degree resolution, for any
+      cadence from 120 s down to 10 s and any speed up to 130 km/h: x1.44.
+      At 1 s it reaches x1.77 because the deltas shrink. 1.4 is the worst case
+      across that grid, rounded down.
+    note: >
+      Two findings worth keeping in view. Delta encoding makes *some* fields
+      worse — heading costs 3 B as a delta against 2 B raw, because a 90 degree
+      turn at 0.01 degree resolution is 9000 units — so a good encoder keeps
+      those raw and would beat this figure. And the ratio improves with density,
+      which means densifying is cheaper per position than this model assumes.
+      Both errors run in the same direction: conservative.
+    reproduce: "python scripts/derive_compression.py"
+
 billing:
   session_floor_bytes:
     value: 1024
@@ -430,7 +457,7 @@ profiles:
       records_per_send: null
       dedup_repeated_fix: true
       repeat_state_each_record: false
-      compression_ratio: 4.0
+      compression_ratio: 1.4     # derived, see compression.delta_varint_ratio
       session_policy: persistent
       tls: true
       emit_when_parked: false

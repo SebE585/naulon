@@ -52,10 +52,10 @@
         }
       },
       "expect": {
-        "mb_per_month": 5.526928,
-        "mb_per_month_billed": 5.526928,
+        "mb_per_month": 16.944174,
+        "mb_per_month_billed": 16.944174,
         "sessions_per_month": 44,
-        "bytes_driving": 5335440.0,
+        "bytes_driving": 16752685.714,
         "bytes_parked": 191488.0
       }
     },

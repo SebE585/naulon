@@ -182,7 +182,13 @@ def _field_rate_hz(clock: str, device: dict) -> float:
 def _payload_bytes_per_second(
     constants: dict, device: dict, fields: dict[str, bool]
 ) -> tuple[float, list[Contribution]]:
-    """Semantic payload plus per-record framing, before transport and compression."""
+    """Semantic payload plus per-record framing, before transport.
+
+    Compression is applied here rather than to the total, and only to the
+    semantic fields: sync words, length prefixes and checksums do not compress.
+    Applying a ratio to the whole record would overstate the gain.
+    """
+    compression = device.get("compression_ratio", 1.0)
     per_second: list[Contribution] = []
     total = 0.0
 
@@ -190,7 +196,7 @@ def _payload_bytes_per_second(
         if not fields.get(spec["id"]):
             continue
         rate = _field_rate_hz(spec["clock"], device)
-        bps = spec["bytes"] * rate
+        bps = spec["bytes"] * rate / compression
         total += bps
         per_second.append(
             Contribution(key=spec["id"], family=spec["family"], clock=spec["clock"], bytes_per_month=bps)
@@ -240,7 +246,6 @@ def _regime_bytes(
 ) -> tuple[float, float, list[Contribution]]:
     """Bytes and session count over `seconds` of the full-stream regime."""
     payload_ps, contributions = _payload_bytes_per_second(constants, device, fields)
-    payload_ps /= device.get("compression_ratio", 1.0)
 
     send_period = device["send_period_s"]
     sends = seconds / send_period
@@ -248,7 +253,7 @@ def _regime_bytes(
     transport_per_send = _transport_bytes_per_send(constants, device, payload_per_send)
 
     for c in contributions:
-        c.bytes_per_month = c.bytes_per_month * seconds / device.get("compression_ratio", 1.0)
+        c.bytes_per_month *= seconds
     contributions.append(
         Contribution(
             key="transport",

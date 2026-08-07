@@ -124,6 +124,11 @@ for c in result.contributions[:5]:
 
 ## What it does not do
 
+**It does not guess.** Every number is sourced, derived from a published
+standard, or flagged as a placeholder in the output. Two of the original
+invented constants have since been shown wrong by a factor of five and a factor
+of three respectively — by the act of sourcing them.
+
 **It does not ship prices.** M2M tariffs are contractual and not public.
 Naulon outputs megabytes and sessions; you supply your own rate, your own
 per-session rounding, and it applies them. A tool that guessed your price would
@@ -170,7 +175,7 @@ model/          the source of truth — no implementation may inline these value
   vectors.json      cross-implementation parity fixtures
 python/         reference implementation, library and CLI
 scenarios/      reproducible worked examples
-scripts/        regen_vectors.py — rerun after any change to constants
+scripts/        regen_vectors.py, derive_compression.py — rerun after changes
 RATIONALE.md    provenance of every constant, and the open debts
 ```
 
