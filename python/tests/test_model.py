@@ -6,6 +6,8 @@ breaks, the argument breaks with it.
 
 from __future__ import annotations
 
+import copy
+
 import pytest
 
 from naulon import compute, load_constants
@@ -126,37 +128,63 @@ def test_fleet_scales_linearly(constants):
     assert fifty == pytest.approx(one * 50, rel=1e-9)
 
 
-def test_unmeasured_constants_are_reported(constants):
-    """A placeholder must never pass silently for a measurement."""
+def test_a_binary_configuration_has_no_placeholders_left(constants):
+    """Every constant a default binary configuration touches is now sourced,
+    derived or measured. If this breaks, something was added without
+    provenance."""
     result = compute({"profile": "periodic", "duty": dict(DUTY)}, constants)
-    assert "billing.session_floor_bytes" in result.unsourced
-    assert "transport.count_downlink" in result.unsourced
+    assert result.unsourced == []
 
 
-def test_sourced_and_derived_constants_are_not_flagged(constants):
-    """The warning list must shrink as constants get provenance, or it becomes
-    wallpaper. Record framing and batch framing both have sources now."""
-    result = compute({"profile": "periodic", "duty": dict(DUTY)}, constants)
-    assert "framing.batch_framing_bytes" not in result.unsourced
-    assert not any(f.startswith("framing.record_framing_bytes") for f in result.unsourced)
+def test_every_constant_has_provenance(constants):
+    """No constant may sit in the file without saying where it came from."""
+    allowed = {"sourced", "derived", "measured"}
+    for section in ("transport", "framing", "compression"):
+        for name, entry in constants[section].items():
+            if not isinstance(entry, dict):
+                continue
+            if "regimes" in entry:
+                for regime, spec in entry["regimes"].items():
+                    assert spec["status"] in allowed, f"{section}.{name}[{regime}]"
+            else:
+                assert entry["status"] in allowed, f"{section}.{name}"
 
 
-def test_only_the_framing_regime_in_use_is_flagged(constants):
-    """The binary regime is sourced; the text one is not. A report must say so
-    for the regime it actually used, and stay quiet about the others — a
-    warning that fires every time stops being read."""
-    binary = compute(
-        {"profile": "periodic", "device": {"framing_regime": "binary_framed"},
-         "duty": dict(DUTY)},
-        constants,
-    )
-    ascii_text = compute(
+def test_the_placeholder_alarm_still_works(constants):
+    """There is no placeholder left in the file, so the mechanism is tested
+    against a synthetic one. A green report must mean 'nothing to flag', never
+    'the alarm is broken'."""
+    doctored = copy.deepcopy(constants)
+    doctored["framing"]["batch_framing_bytes"]["status"] = "to_measure"
+    result = compute({"profile": "periodic", "duty": dict(DUTY)}, doctored)
+    assert result.unsourced == ["framing.batch_framing_bytes"]
+
+    doctored = copy.deepcopy(constants)
+    regimes = doctored["framing"]["record_framing_bytes"]["regimes"]
+    regimes["ascii_delimited"]["status"] = "to_source"
+    used = compute(
         {"profile": "periodic", "device": {"framing_regime": "ascii_delimited"},
          "duty": dict(DUTY)},
-        constants,
+        doctored,
     )
-    assert not any(f.startswith("framing.record_framing_bytes") for f in binary.unsourced)
-    assert "framing.record_framing_bytes[ascii_delimited]" in ascii_text.unsourced
+    unused = compute({"profile": "periodic", "duty": dict(DUTY)}, doctored)
+    assert used.unsourced == ["framing.record_framing_bytes[ascii_delimited]"]
+    assert unused.unsourced == []
+
+
+def test_downlink_billing_is_a_tariff_clause_not_a_constant(constants):
+    """Whether the plan bills acknowledgements is contractual. It has to change
+    the answer, and it must not live in constants.yaml."""
+    assert "billing" not in constants
+    billed = compute(
+        {"profile": "periodic", "duty": dict(DUTY), "tariff": {"count_downlink": True}},
+        constants,
+    ).mb_per_month
+    uplink_only = compute(
+        {"profile": "periodic", "duty": dict(DUTY), "tariff": {"count_downlink": False}},
+        constants,
+    ).mb_per_month
+    assert uplink_only < billed
 
 
 def test_framing_regimes_are_an_order_of_magnitude_apart(constants):

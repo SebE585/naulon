@@ -126,7 +126,7 @@
       }
     },
     "tariff": {
-      "description": "Optional and entirely user-supplied. Naulon does not ship prices: M2M tariffs are contractual and not public.",
+      "description": "Optional and entirely user-supplied. Naulon does not ship prices or billing rules: M2M tariffs are contractual and not public. Everything in this block is a clause, not a constant.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -155,6 +155,11 @@
         "currency": {
           "type": "string",
           "default": "EUR"
+        },
+        "count_downlink": {
+          "description": "Whether the plan bills the return direction (acknowledgements, server replies). Contractual; most M2M plans do. Defaults to true.",
+          "type": "boolean",
+          "default": true
         }
       }
     }

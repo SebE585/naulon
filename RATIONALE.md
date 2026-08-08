@@ -72,20 +72,36 @@ as `device_id`.
 
 - [AIVDM/AIVDO protocol decoding, message type 1](https://gpsd.gitlab.io/gpsd/AIVDM.html) — consulted 2026-08-07
 
-### ascii_delimited — 60 bytes, still a placeholder
+### ascii_delimited — 31 bytes, derived
 
-Text protocols pay several times binary for identical semantics: field
-separators, decimal rather than binary representation, and a long fixed
-preamble repeated on every record.
+Queclink @Track section 3.1 states the format as `+RESP:GTXXX,<parameter1>,
+<parameter2>,...`, with a comma separating neighbouring parameters and the
+string ending in NUL. Decomposing the specification's own example position
+report:
 
-A Queclink @Track position record runs to roughly 180 characters, a large share
-of which is prefix, message type, device identity, model name, device name,
-counters, checksum and terminator.
+| element | chars |
+|---|---|
+| prefix `+RESP:` | 6 |
+| message type tag | 5 |
+| separators (19 parameters) | 19 |
+| terminator | 1 |
+| **total** | **31** |
 
-- [Queclink @Track Air Interface Protocol](https://www.traccar.org/protocol/5004-gl200/GT300%20@Track%20Air%20Interface%20Protocol%20V4.02.pdf) — located 2026-08-07
-- **Status: `to_source`.** The 60-byte value is an estimate. It has *not* been
-  derived field by field from the specification. Do not publish a figure that
-  depends on this regime until it has been.
+Device identity and count number are excluded: the model carries them as
+`device_id` and `sequence_counter`.
+
+- [Queclink @Track Air Interface Protocol V4.02, §3.1 Message Format](https://www.traccar.org/protocol/5004-gl200/GT300%20@Track%20Air%20Interface%20Protocol%20V4.02.pdf) — consulted 2026-08-07
+
+**This regime is a known underestimate, and the reason is structural.** In a
+text protocol the *fields* inflate as well as the envelope: a latitude written
+`121.354335` is 10 characters against 4 bytes binary, roughly 2.5x. Naulon takes
+field widths from their binary declarations, so `ascii_delimited` currently
+prices only the envelope inflation.
+
+The earlier 60-byte placeholder was a fudge that buried the field inflation
+inside the framing number — it produced a less wrong total by being wrong about
+two things at once. Deriving the envelope honestly exposed the real gap.
+Representing text protocols properly needs a per-regime field-width multiplier.
 
 ---
 

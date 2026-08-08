@@ -51,7 +51,7 @@ IP and TCP headers, acknowledgements, per-session billing floor. The second is
 set by the **acquisition rate**.
 
 Record framing is a **regime**, not a constant — binary framed (8 B),
-bit-packed (4 B), text-delimited (~60 B) — and it is the term that sets the
+bit-packed (4 B), text-delimited (31 B) — and it is the term that sets the
 marginal cost. It is an explicit parameter rather than a hidden assumption.
 
 They are separable. Raising the acquisition rate touches only the second term —
@@ -129,10 +129,11 @@ standard, or flagged as a placeholder in the output. Two of the original
 invented constants have since been shown wrong by a factor of five and a factor
 of three respectively — by the act of sourcing them.
 
-**It does not ship prices.** M2M tariffs are contractual and not public.
-Naulon outputs megabytes and sessions; you supply your own rate, your own
-per-session rounding, and it applies them. A tool that guessed your price would
-be inventing the most important number in the answer.
+**It does not ship prices or billing rules.** M2M tariffs are contractual and
+not public. Naulon outputs megabytes and sessions; the price per megabyte, the
+per-session rounding unit and whether your plan bills the downlink all live in
+the user-supplied `tariff` block, with no defaults. They are clauses, not
+constants, and shipping a default would be pretending to know your contract.
 
 **It does not name vendors or protocols.** The model is built from behavioural
 archetypes and publicly documented field widths, not from any one product.
@@ -144,9 +145,14 @@ Every constant in `model/constants.yaml` carries a status:
 | status | meaning |
 |---|---|
 | `sourced` | taken from a published specification, with URL and consultation date |
-| `derived` | computable from first principles or a public standard — the `basis` field says which |
-| `to_source` | a placeholder awaiting a citation to a published specification |
-| `to_measure` | awaiting empirical measurement — the `method` field says how |
+| `derived` | computed from first principles or a public standard — the `basis` field says which |
+| `measured` | measured, with a reproducible method in the repository |
+| `to_source` / `to_measure` | a placeholder — **not a fact** |
+
+**As of 0.1.0 there are no placeholders left.** Every constant is sourced,
+derived or measured, and a default configuration produces a report with no
+warnings. The alarm is still tested, against a synthetic placeholder, so that a
+clean report never silently means a broken check.
 
 `RATIONALE.md` documents every value: where it came from, what was cross-checked
 against what, and what is still owed.
@@ -175,7 +181,7 @@ model/          the source of truth — no implementation may inline these value
   vectors.json      cross-implementation parity fixtures
 python/         reference implementation, library and CLI
 scenarios/      reproducible worked examples
-scripts/        regen_vectors.py, derive_compression.py — rerun after changes
+scripts/        regen_vectors.py, derive_compression.py, measure_tls_handshake.py
 RATIONALE.md    provenance of every constant, and the open debts
 ```
 

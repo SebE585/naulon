@@ -33,11 +33,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 2737.152,
-        "mb_per_month_billed": 2737.152,
+        "mb_per_month": 1923.264,
+        "mb_per_month_billed": 1923.264,
         "sessions_per_month": 259200.0,
-        "bytes_driving": 669081600.0,
-        "bytes_parked": 2068070400.0
+        "bytes_driving": 470131200.0,
+        "bytes_parked": 1453132800.0
       }
     },
     {
@@ -340,11 +340,11 @@
         }
       },
       "expect": {
-        "mb_per_month": 1.71318,
-        "mb_per_month_billed": 1.71318,
+        "mb_per_month": 1.382232,
+        "mb_per_month_billed": 1.382232,
         "sessions_per_month": 44,
-        "bytes_driving": 762300.0,
-        "bytes_parked": 950880.0
+        "bytes_driving": 628320.0,
+        "bytes_parked": 753912.0
       }
     }
   ]

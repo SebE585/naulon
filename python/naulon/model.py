@@ -111,7 +111,7 @@ def _unsourced_constants(constants: dict, device: dict | None = None) -> list[st
     stop being read.
     """
     flagged: list[str] = []
-    for section in ("transport", "framing", "billing"):
+    for section in ("transport", "framing", "compression"):
         for name, entry in constants.get(section, {}).items():
             if not isinstance(entry, dict):
                 continue
@@ -210,8 +210,14 @@ def _payload_bytes_per_second(
     return total, per_second
 
 
-def _transport_bytes_per_send(constants: dict, device: dict, payload_per_send: float) -> float:
-    """Headers, acknowledgements and handshakes for one transmission."""
+def _transport_bytes_per_send(
+    constants: dict, device: dict, payload_per_send: float, count_downlink: bool = True
+) -> float:
+    """Headers, acknowledgements and handshakes for one transmission.
+
+    `count_downlink` is a clause in the caller's plan, not a constant: whether
+    the return direction is billed varies by contract and cannot be derived.
+    """
     tr = constants["transport"]
     header = _value(tr["ip_tcp_header_bytes"])
     mss = _value(tr["mss_bytes"])
@@ -222,7 +228,7 @@ def _transport_bytes_per_send(constants: dict, device: dict, payload_per_send: f
 
     segments = max(1, math.ceil(on_wire / mss))
     overhead = segments * header
-    if _value(tr["count_downlink"]):
+    if count_downlink:
         overhead += segments * _value(tr["ack_bytes"])
 
     if device.get("session_policy") == "reconnect_per_send":
@@ -243,6 +249,7 @@ def _regime_bytes(
     device: dict,
     fields: dict[str, bool],
     seconds: float,
+    count_downlink: bool = True,
 ) -> tuple[float, float, list[Contribution]]:
     """Bytes and session count over `seconds` of the full-stream regime."""
     payload_ps, contributions = _payload_bytes_per_second(constants, device, fields)
@@ -250,7 +257,9 @@ def _regime_bytes(
     send_period = device["send_period_s"]
     sends = seconds / send_period
     payload_per_send = payload_ps * send_period
-    transport_per_send = _transport_bytes_per_send(constants, device, payload_per_send)
+    transport_per_send = _transport_bytes_per_send(
+        constants, device, payload_per_send, count_downlink
+    )
 
     for c in contributions:
         c.bytes_per_month *= seconds
@@ -266,14 +275,18 @@ def _regime_bytes(
     return total, sends, contributions
 
 
-def _heartbeat_bytes(constants: dict, device: dict, seconds: float) -> tuple[float, float]:
+def _heartbeat_bytes(
+    constants: dict, device: dict, seconds: float, count_downlink: bool = True
+) -> tuple[float, float]:
     """A parked device that behaves still pays to say it is there."""
     period = device.get("heartbeat_period_s")
     if not period:
         return 0.0, 0.0
     beats = seconds / period
     payload = _record_framing_bytes(constants, device)
-    per_beat = payload + _transport_bytes_per_send(constants, device, payload)
+    per_beat = payload + _transport_bytes_per_send(
+        constants, device, payload, count_downlink
+    )
     return per_beat * beats, beats
 
 
@@ -285,21 +298,28 @@ def compute(config: dict, constants: dict) -> Result:
     """
     device, fields = resolve_config(config, constants)
     duty = config["duty"]
+    count_downlink = (config.get("tariff") or {}).get("count_downlink", True)
     vehicles = duty.get("vehicles", 1)
 
     driving_s = duty["driving_hours_per_day"] * SECONDS_PER_HOUR * duty["driving_days_per_month"]
     month_s = 24 * SECONDS_PER_HOUR * 30
     parked_s = max(0.0, month_s - driving_s)
 
-    bytes_driving, sends_driving, contributions = _regime_bytes(constants, device, fields, driving_s)
+    bytes_driving, sends_driving, contributions = _regime_bytes(
+        constants, device, fields, driving_s, count_downlink
+    )
 
     if device.get("emit_when_parked"):
-        bytes_parked, sends_parked, parked_contrib = _regime_bytes(constants, device, fields, parked_s)
+        bytes_parked, sends_parked, parked_contrib = _regime_bytes(
+            constants, device, fields, parked_s, count_downlink
+        )
         by_key = {c.key: c for c in contributions}
         for c in parked_contrib:
             by_key[c.key].bytes_per_month += c.bytes_per_month
     else:
-        bytes_parked, sends_parked = _heartbeat_bytes(constants, device, parked_s)
+        bytes_parked, sends_parked = _heartbeat_bytes(
+            constants, device, parked_s, count_downlink
+        )
         contributions.append(
             Contribution(key="heartbeat", family="service", clock="service", bytes_per_month=bytes_parked)
         )

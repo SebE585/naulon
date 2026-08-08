@@ -25,10 +25,6 @@ transport:
     value: 40
     status: derived
     basis: "bare TCP ACK segment, IPv4 + TCP headers, no payload"
-  count_downlink:
-    value: true
-    status: to_source
-    note: "Most M2M plans bill both directions. Contract-specific; expose as a user toggle."
   mss_bytes:
     value: 1400
     status: derived
@@ -38,13 +34,24 @@ transport:
     status: derived
     basis: "SYN + SYN-ACK + ACK, 40 B each, no options"
   tls_handshake_full_bytes:
-    value: null
-    status: to_measure
-    method: "capture a full TLS 1.3 handshake at the receiving socket; dominated by certificate chain size"
+    value: 5967
+    status: measured
+    method: >
+      Driven through ssl.SSLContext.wrap_bio with two memory buffers, counting
+      every byte in both directions, against four public TLS 1.3 endpoints.
+      Median of n=4; range 5457-6667. The spread is the server certificate
+      chain, which dominates and varies by issuer far more than by client.
+      Reproduce: python scripts/measure_tls_handshake.py
+    measured_on: 2026-08-07
   tls_handshake_resumed_bytes:
-    value: null
-    status: to_measure
-    method: "capture a resumed TLS 1.3 handshake (PSK) at the receiving socket"
+    value: 3164
+    status: measured
+    method: >
+      Same instrument, second connection reusing a harvested session ticket
+      (session_reused confirmed true). Median of n=4; range 3160-3169. Far
+      tighter than the full handshake because no certificate chain is sent.
+      Reproduce: python scripts/measure_tls_handshake.py
+    measured_on: 2026-08-07
   tls_record_overhead_bytes:
     value: 22
     status: derived
@@ -100,20 +107,29 @@ framing:
             url: "https://gpsd.gitlab.io/gpsd/AIVDM.html"
             consulted_on: 2026-08-07
       ascii_delimited:
-        value: 60
-        status: to_source
-        note: >
-          Text protocols pay several times binary for the same semantics:
-          separators, decimal representation, and a long fixed preamble. A
-          Queclink @Track position record runs to roughly 180 characters, a
-          large share of it prefix, message type, device identity, model name,
-          counters, checksum and terminator. This value is an estimate and has
-          NOT been derived field by field.
+        value: 31
+        status: derived
+        basis: >
+          Queclink @Track states its format as `+RESP:GTXXX,<parameter1>,
+          <parameter2>,...`, with a comma between neighbouring parameters and
+          the string ending in NUL. Decomposing the specification's own example
+          position report: prefix `+RESP:` 6 chars, message type tag 5, 19
+          separators, terminator 1 = 31. Device identity and count number are
+          excluded, being modelled as `device_id` and `sequence_counter`.
         sources:
-          - name: "Queclink @Track Air Interface Protocol"
+          - name: "Queclink @Track Air Interface Protocol V4.02, section 3.1 Message Format"
             url: "https://www.traccar.org/protocol/5004-gl200/GT300%20@Track%20Air%20Interface%20Protocol%20V4.02.pdf"
             consulted_on: 2026-08-07
-            reservation: "Located but not yet read field by field."
+        note: >
+          KNOWN UNDERESTIMATE, and the reason is structural rather than
+          numerical. In a text protocol the *fields* inflate too, not only the
+          envelope: a latitude written `121.354335` is 10 characters against 4
+          bytes binary, roughly 2.5x. This model takes field widths from their
+          binary declarations, so the ascii_delimited regime currently prices
+          only the envelope inflation and not the field inflation. The earlier
+          60-byte placeholder was a fudge that buried the second effect inside
+          the first. Representing it properly needs a per-regime field-width
+          multiplier. Until then, this regime understates text protocols.
   batch_framing_bytes:
     value: 16
     status: derived
@@ -167,15 +183,11 @@ compression:
       Both errors run in the same direction: conservative.
     reproduce: "python scripts/derive_compression.py"
 
-billing:
-  session_floor_bytes:
-    value: 1024
-    status: to_measure
-    method: >
-      Compare per-session byte counts reported by the operator against bytes
-      counted at the receiving socket for the same sessions. The floor is the
-      value below which billed volume stops tracking actual volume.
-    note: "Contract-specific. Exposed as a user input; this is only a default."
+# There is deliberately no `billing:` section. The per-session rounding unit and
+# whether a plan bills the downlink are clauses in a contract, not properties of
+# the world: they vary by plan, they cannot be derived, and there is no correct
+# default. Both live in the user-supplied `tariff` block of a configuration.
+# Shipping a default here would be pretending to know something we do not.
 
 # ---------------------------------------------------------------------------
 # Fields
